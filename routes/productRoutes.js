@@ -13,15 +13,52 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET all products 
+// GET Advanced Querying
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find();
+    const { category, minPrice, maxPrice, sortBy, page = 1, limit = 10 } = req.query;
+
+    // 1) Build filter object dynamically
+    const filter = {};
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+
+      if (minPrice) {
+        filter.price.$gte = Number(minPrice);
+      }
+
+      if (maxPrice) {
+        filter.price.$lte = Number(maxPrice);
+      }
+    }
+
+    // 2) Build sort object
+    let sortOption = {};
+    if (sortBy === "price_asc") sortOption = { price: 1 };
+    if (sortBy === "price_desc") sortOption = { price: -1 };
+
+    // 3) Pagination
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // 4) Query
+    const products = await Product.find(filter)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limitNumber);
+
     return res.json(products);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 });
+
 
 
 // GET
